@@ -31,9 +31,31 @@ app.post('/ask', async (req, res) => {
       body: JSON.stringify({
         model: 'openchat',
         prompt: finalPrompt,
-        stream: false
+        stream: true
       })
     });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+
+      // chaque ligne est un JSON du style : { "response": "bla", "done": false }
+      chunk.split('\n').forEach(line => {
+        try {
+          const json = JSON.parse(line);
+          if (json.response) {
+            fullResponse += json.response;
+          }
+        } catch (e) {}
+      });
+    }
+
+    res.json({ response: fullResponse });
 
     const result = await response.json();
     res.json({ response: result.response });
