@@ -39,6 +39,8 @@ app.post('/ask', async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.flushHeaders?.();
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -53,16 +55,18 @@ app.post('/ask', async (req, res) => {
         try {
           const json = JSON.parse(line);
           if (json.response) {
-            res.write(json.response);
-            res.flush?.();
+            for (const char of json.response) {
+              res.write(char);
+              res.flush?.(); // force l'envoi immédiat de chaque lettre
+            }
           }
         } catch (err) {
-
+          // ligne JSON incomplète
         }
       });
     }
 
-    res.end();
+res.end();
 
   } catch (err) {
     console.error('Erreur API ou RAG :', err);
