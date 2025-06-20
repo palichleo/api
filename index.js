@@ -6,7 +6,9 @@ const { retrieveRelevant } = require('./rag/retriever');
 const app = express();
 const PORT = 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://www.leopalich.com'
+}));
 app.use(express.json());
 
 app.post('/ask', async (req, res) => {
