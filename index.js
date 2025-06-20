@@ -2,9 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const { retrieveRelevant } = require('./rag/retriever');
-
+const compression = require('compression');
 const app = express();
 const PORT = 3001;
+
+app.use(compression({ threshold: 0 }));
 
 app.use(cors({
   origin: 'https://www.leopalich.com'
@@ -52,6 +54,7 @@ app.post('/ask', async (req, res) => {
           const json = JSON.parse(line);
           if (json.response) {
             res.write(json.response);
+            res.flush?.();
           }
         } catch (err) {
 
@@ -65,4 +68,7 @@ app.post('/ask', async (req, res) => {
     console.error('Erreur API ou RAG :', err);
     res.status(500).send('Erreur serveur interne');
   }
+  app.listen(PORT, ()=>{
+    console.log(`Serveur started`);
+  })
 });
