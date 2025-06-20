@@ -31,7 +31,7 @@ app.post('/ask', async (req, res) => {
       body: JSON.stringify({
         model: 'openchat',
         prompt: finalPrompt,
-        stream: true
+        stream: false
       })
     });
 
