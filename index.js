@@ -68,7 +68,7 @@ app.post('/ask', async (req, res) => {
     console.error('Erreur API ou RAG :', err);
     res.status(500).send('Erreur serveur interne');
   }
-  app.listen(PORT, ()=>{
-    console.log(`Serveur started`);
-  })
+  app.listen(PORT, () => {
+    console.log(`Serveur lancé sur http://localhost:${PORT}`);
+  });
 });
