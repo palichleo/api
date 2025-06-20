@@ -9,6 +9,7 @@ const PORT = 3001;
 app.use(cors({
   origin: 'https://www.leopalich.com'
 }));
+
 app.use(express.json());
 
 app.post('/ask', async (req, res) => {
@@ -37,28 +38,26 @@ app.post('/ask', async (req, res) => {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let fullResponse = '';
+    let fullText = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+
       const chunk = decoder.decode(value, { stream: true });
 
-      // chaque ligne est un JSON du style : { "response": "bla", "done": false }
       chunk.split('\n').forEach(line => {
         try {
           const json = JSON.parse(line);
           if (json.response) {
-            fullResponse += json.response;
+            fullText += json.response;
           }
-        } catch (e) {}
+        } catch (err) {
+        }
       });
     }
 
-    res.json({ response: fullResponse });
-
-    const result = await response.json();
-    res.json({ response: result.response });
+    res.json({ response: fullText });
   } catch (err) {
     console.error('Erreur API ou RAG :', err);
     res.status(500).json({ error: 'Erreur serveur interne' });
