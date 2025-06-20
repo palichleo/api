@@ -6,7 +6,7 @@ const compression = require('compression');
 const app = express();
 const PORT = 3001;
 
-app.use(compression({ threshold: 0 }));
+app.use(compression({ threshold: Infinity }));
 
 app.use(cors({
   origin: 'https://www.leopalich.com'
@@ -17,6 +17,17 @@ app.use(express.json());
 app.post('/ask', async (req, res) => {
   const rawPrompt = req.body.prompt?.trim() || '';
   console.log('\nQuestion utilisateur :', rawPrompt);
+
+app.use((req, res, next) => {
+res.setHeader('Access-Control-Allow-Origin', 'https://www.leopalich.com');
+res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+res.setHeader('Access-Control-Max-Age', '600'); // évite de refaire un preflight à chaque fois
+if (req.method === 'OPTIONS') {
+  return res.sendStatus(204); // réponse rapide
+}
+next();
+});
 
   try {
     const relevantChunks = await retrieveRelevant(rawPrompt);
@@ -39,8 +50,9 @@ app.post('/ask', async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
     res.flushHeaders?.();
+    res.write(' ');
+    res.setHeader('Transfer-Encoding', 'chunked');
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
