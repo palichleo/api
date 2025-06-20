@@ -36,9 +36,10 @@ app.post('/ask', async (req, res) => {
       })
     });
 
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let fullText = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -50,20 +51,18 @@ app.post('/ask', async (req, res) => {
         try {
           const json = JSON.parse(line);
           if (json.response) {
-            fullText += json.response;
+            res.write(json.response);
           }
         } catch (err) {
+
         }
       });
     }
 
-    res.json({ response: fullText });
+    res.end();
+
   } catch (err) {
     console.error('Erreur API ou RAG :', err);
-    res.status(500).json({ error: 'Erreur serveur interne' });
+    res.status(500).send('Erreur serveur interne');
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`API LéoBot avec RAG active sur http://localhost:${PORT}`);
 });
