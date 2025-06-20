@@ -2,7 +2,3 @@ node_modules/
 .env
 store.json
 .vscode/
-*.log
-*.pdf
-*.md
-ollama/
