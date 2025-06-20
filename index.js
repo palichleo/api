@@ -2,11 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const { retrieveRelevant } = require('./rag/retriever');
-const compression = require('compression');
 const app = express();
 const PORT = 3001;
-
-app.use(compression({ threshold: Infinity }));
 
 app.use(cors({
   origin: 'https://www.leopalich.com'
@@ -19,14 +16,9 @@ app.post('/ask', async (req, res) => {
   console.log('\nQuestion utilisateur :', rawPrompt);
 
 app.use((req, res, next) => {
-res.setHeader('Access-Control-Allow-Origin', 'https://www.leopalich.com');
-res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-res.setHeader('Access-Control-Max-Age', '600'); // évite de refaire un preflight à chaque fois
-if (req.method === 'OPTIONS') {
-  return res.sendStatus(204); // réponse rapide
-}
-next();
+  res.setHeader('Content-Encoding', 'identity');
+  res.removeHeader?.('Content-Encoding');
+  next();
 });
 
   try {
