@@ -11,15 +11,16 @@ app.use(cors({
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  if (!res.headersSent) {
+    res.setHeader('Content-Encoding', 'identity');
+  }
+  next();
+});
+
 app.post('/ask', async (req, res) => {
   const rawPrompt = req.body.prompt?.trim() || '';
   console.log('\nQuestion utilisateur :', rawPrompt);
-
-app.use((req, res, next) => {
-  res.setHeader('Content-Encoding', 'identity');
-  res.removeHeader?.('Content-Encoding');
-  next();
-});
 
   try {
     const relevantChunks = await retrieveRelevant(rawPrompt);
@@ -41,10 +42,13 @@ app.use((req, res, next) => {
       })
     });
 
+    // TOUS LES HEADERS AVANT TOUT WRITE
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.flushHeaders?.();
-    res.write(' ');
     res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.flushHeaders?.();  // envoie tous les headers ici
+    res.write(' ');         // ping immédiat
+    res.flush?.();
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -61,7 +65,7 @@ app.use((req, res, next) => {
           if (json.response) {
             for (const char of json.response) {
               res.write(char);
-              res.flush?.(); // force l'envoi immédiat de chaque lettre
+              res.flush?.();
             }
           }
         } catch (err) {
@@ -70,11 +74,14 @@ app.use((req, res, next) => {
       });
     }
 
-res.end();
+    res.end();
+    console.log('✅ Réponse envoyée');
 
   } catch (err) {
     console.error('Erreur API ou RAG :', err);
-    res.status(500).send('Erreur serveur interne');
+    if (!res.headersSent) {
+      res.status(500).send('Erreur serveur interne');
+    }
   }
 });
 
