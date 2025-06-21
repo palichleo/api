@@ -4,9 +4,13 @@ const fs = require('fs');
 const { retrieveRelevant } = require('./rag/retriever');
 const app = express();
 const PORT = 3001;
+adresse_ip_vps = "54.37.154.254"
 
 app.use(cors({
-  origin: 'https://www.leopalich.com'
+  origin: [
+    'https://www.leopalich.com',
+    'https://api.leopalich.com'
+  ]
 }));
 
 app.use(express.json());
@@ -85,6 +89,6 @@ app.post('/ask', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Serveur lancé sur http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Serveur accessible sur http://${adresse_ip_vps}:${PORT}`);
 });
