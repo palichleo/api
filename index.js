@@ -3,7 +3,7 @@ const cors = require('cors');
 const { retrieveRelevant } = require('./rag/retriever');
 
 // Utilisation du fetch natif de Node.js (version 18+)
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+//const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
 const PORT = 3000;
