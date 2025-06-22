@@ -6,7 +6,7 @@ const { retrieveRelevant } = require('./rag/retriever');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
-const PORT = 3001;
+const PORT = 3000;
 
 // Configuration CORS simplifiée
 app.use(cors({
