@@ -50,7 +50,7 @@ app.post('/ask', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'openchat',
+        model: 'phi3:mini',
         prompt: finalPrompt,
         stream: true
       })
@@ -90,7 +90,7 @@ app.post('/ask', async (req, res) => {
     }
     
     res.end();
-    console.log('✅ Réponse envoyée');
+    console.log('Réponse envoyée');
 
   } catch (err) {
     console.error('ERREUR:', err);
