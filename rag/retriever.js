@@ -1,3 +1,5 @@
+// rag/retriever.js
+
 const { ChromaClient } = require('chromadb');
 const { embed } = require('./embedder');
 
@@ -10,7 +12,11 @@ async function initCollection() {
     try {
       collection = await chroma.getCollection({ name: 'leoknowledge' });
     } catch {
-      collection = await chroma.createCollection({ name: 'leoknowledge' });
+      // Créer la collection SANS fonction d'embedding (on fournit nos propres embeddings)
+      collection = await chroma.createCollection({ 
+        name: 'leoknowledge',
+        embeddingFunction: null  // ← Clé importante : on désactive l'embedding automatique
+      });
     }
   }
   return collection;

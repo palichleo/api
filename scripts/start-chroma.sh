@@ -10,5 +10,5 @@ docker run -d \
   --name chroma \
   --restart unless-stopped \
   -p 8000:8000 \
-  -v chroma_data:/chroma/.chroma \
-  ghcr.io/chroma-core/chroma:latest
+  -v ~/leoapi/api/chroma_data:/chroma/chroma \
+  chromadb/chroma:latest
