@@ -1,18 +1,22 @@
-# Présentation de Léo Palich
-
-Léo Palich est freelance spécialisé en intelligence artificielle, analyse de données statistiques et développement de modèles prédictifs. Il a réalisé de nombreux projets en traitement automatique, dashboards personnalisés, et systèmes d’aide à la décision.
-
-# Services proposés
+# Compétences
 
 - Analyse statistique avancée
 - Prédiction (ML)
 - Dashboards interactifs
 - Automatisation de flux de données
+- Programmation (Python / Java / Javascript)
+- Maitrise des librairies telles que Scikit-Learn, Tensorflow, Keras.
 
-# Clients & projets
+# Projets
 
-Il a collaboré avec des institutions académiques, des startups tech, et des musées pour des projets de personnalisation, de recommandation ou de traitement de signal.
+- Amélioration du flux de données d'une entreprise
+- Création de modèle de reconnaissance de gestes afin de controler un robot par les mouvements
+- Tentative de création d'un système de prédiction des fluctuations des marchés boursiers
+- Programmation d'un système de chiffrement de mots de passes en Java, en utilisant la stéganographie
+
 
 # Contact
 
-Léo est basé en France et disponible en freelance.
+- Je suis basé en France, à Nancy.
+- Mail : palichleo@gmail.com
+- Telephone : 06.95.02.40.54
