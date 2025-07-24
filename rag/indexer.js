@@ -4,6 +4,12 @@ const path = require('path');
 const { addDocument } = require('./retriever');
 const vectorPath = path.join(__dirname, 'store.json');
 const KNOWLEDGE_DIR = path.join(__dirname, '../knowledges');
+const { ChromaClient } = require('chromadb');
+
+const chroma = new ChromaClient({ path: 'http://localhost:8000' });
+
+await chroma.deleteCollection({ name: 'leoknowledge' }).catch(() => {});
+await chroma.createCollection({ name: 'leoknowledge' });
 
 function splitMarkdownBySections(text) {
   const sections = text.split(/^#{1,3} /gm) // découpe par #, ##, ### 
