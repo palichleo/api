@@ -1,4 +1,3 @@
-// rag/retriever.js
 const { ChromaClient } = require('chromadb');
 const { embed } = require('./embedder');
 
