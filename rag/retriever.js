@@ -1,38 +1,42 @@
-const fs = require('fs');
-const path = require('path');
+// rag/retriever.js
+const { ChromaClient } = require('chromadb');
 const { embed } = require('./embedder');
 
-const storePath = path.resolve(__dirname, 'store.json');
+const chroma = new ChromaClient({ path: 'http://localhost:8000' });
+let collection;
 
-function cosineSimilarity(vecA, vecB) {
-  const dot = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
-  const normA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
-  const normB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-  return dot / (normA * normB);
-}
-
-function loadStore() {
-  return JSON.parse(fs.readFileSync(storePath, 'utf8'));
-}
-
-function saveStore(data) {
-  fs.writeFileSync(storePath, JSON.stringify(data, null, 2));
+async function initCollection() {
+  if (!collection) {
+    await chroma.createCollection({ name: 'leoknowledge' }).catch(() => {});
+    collection = await chroma.getCollection({ name: 'leoknowledge' });
+  }
+  return collection;
 }
 
 async function addDocument(text, source = 'unknown') {
   const embedding = await embed(text);
-  const store = loadStore();
-  store.push({ text, embedding, source });
-  saveStore(store);
+  const coll = await initCollection();
+  await coll.add({
+    ids: [Date.now().toString() + Math.random()],
+    documents: [text],
+    metadatas: [{ source }],
+    embeddings: [embedding]
+  });
 }
 
 async function retrieveRelevant(query, k = 3) {
-  const store = loadStore();
+  const coll = await initCollection();
   const queryVec = await embed(query);
-  return store
-    .map(item => ({ ...item, score: cosineSimilarity(queryVec, item.embedding) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, k);
+  const results = await coll.query({
+    queryEmbeddings: [queryVec],
+    nResults: k
+  });
+
+  return results.documents[0].map((text, i) => ({
+    text,
+    source: results.metadatas[0][i]?.source,
+    score: results.distances[0][i]
+  }));
 }
 
 module.exports = { addDocument, retrieveRelevant };

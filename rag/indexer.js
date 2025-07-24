@@ -2,26 +2,24 @@
 const fs = require('fs');
 const path = require('path');
 const { addDocument } = require('./retriever');
-const vectorPath = path.join(__dirname, 'store.json');
 const KNOWLEDGE_DIR = path.join(__dirname, '../knowledges');
 const { ChromaClient } = require('chromadb');
 
-const chroma = new ChromaClient({ path: 'http://localhost:8000' });
-
-await chroma.deleteCollection({ name: 'leoknowledge' }).catch(() => {});
-await chroma.createCollection({ name: 'leoknowledge' });
+async function resetCollection() {
+  const chroma = new ChromaClient({ path: 'http://localhost:8000' });
+  await chroma.deleteCollection({ name: 'leoknowledge' }).catch(() => {});
+  await chroma.createCollection({ name: 'leoknowledge' });
+}
 
 function splitMarkdownBySections(text) {
-  const sections = text.split(/^#{1,3} /gm) // découpe par #, ##, ### 
+  const sections = text.split(/^#{1,3} /gm)
     .map(s => s.trim())
-    .filter(s => s.length > 30); // filtre les morceaux trop petits ou vides
-
-  return sections.map(s => '# ' + s); // remet une balise titre pour chaque chunk
+    .filter(s => s.length > 30);
+  return sections.map(s => '# ' + s);
 }
 
 async function indexKnowledge() {
-  fs.writeFileSync(vectorPath, '[]'); // reset store
-
+  await resetCollection(); // nettoyage propre
   const files = fs.readdirSync(KNOWLEDGE_DIR).filter(f =>
     f.endsWith('.md') || f.endsWith('.txt')
   );
@@ -31,7 +29,7 @@ async function indexKnowledge() {
     const chunks = splitMarkdownBySections(content);
 
     for (const chunk of chunks) {
-      console.log(`📄 [${file}] →`, chunk.slice(0, 60).replace(/\n/g, ' ') + '...');
+      console.log(`[${file}] →`, chunk.slice(0, 60).replace(/\n/g, ' ') + '...');
       await addDocument(chunk, file);
     }
   }
