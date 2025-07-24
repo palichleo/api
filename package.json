@@ -4,5 +4,8 @@
     "chromadb": "^3.0.5",
     "cors": "^2.8.5",
     "express": "^5.1.0"
+  },
+  "scripts": {
+    "chroma": "bash scripts/start-chroma.sh"
   }
 }
