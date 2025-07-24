@@ -1,3 +1,5 @@
+//index.js
+
 const express = require('express');
 const cors = require('cors');
 const { retrieveRelevant } = require('./rag/retriever');
@@ -51,7 +53,7 @@ app.post('/ask', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'phi3:mini',
+        model: 'mistral:7b',
         prompt: finalPrompt,
         stream: true
       })
