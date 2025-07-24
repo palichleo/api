@@ -1,8 +1,16 @@
 // rag/retriever.js
-const { ChromaClient } = require('chromadb');
+const { ChromaClient, LocalEmbeddingFunction } = require('chromadb');
 const { embed } = require('./embedder');
 
 const chroma = new ChromaClient({ host: 'localhost', port: 8000 });
+
+const embeddingFunction = new LocalEmbeddingFunction(async (texts) => {
+  const embeddings = [];
+  for (const text of texts) {
+    embeddings.push(await embed(text));
+  }
+  return embeddings;
+});
 
 let collection;
 
@@ -11,7 +19,10 @@ async function initCollection() {
     try {
       collection = await chroma.getCollection({ name: 'leoknowledge' });
     } catch {
-      collection = await chroma.createCollection({ name: 'leoknowledge' });
+      collection = await chroma.createCollection({
+        name: 'leoknowledge',
+        embeddingFunction,
+      });
     }
   }
   return collection;
