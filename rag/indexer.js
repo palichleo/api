@@ -1,3 +1,5 @@
+// rag/indexer.js
+
 const fs = require('fs');
 const path = require('path');
 const { addDocument } = require('./retriever');

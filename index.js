@@ -44,7 +44,7 @@ app.post('/ask', async (req, res) => {
     const relevantChunks = await retrieveRelevant(rawPrompt);
     console.log('Chunks trouvés:', relevantChunks);
     const context = relevantChunks.map(chunk => `• ${chunk.text}`).join('\n');
-    const finalPrompt = `Réponds en première personne (tu es Léo)\nContexte:\n${context}\n\nQuestion: ${rawPrompt}`;
+    const finalPrompt = `Réponds en première personne (tu es Léo)\nEvite les caractere spéciaux (sauf les accents)\nNe t'écarte pas trop de la question!\nContexte:\n${context}\n\nQuestion: ${rawPrompt}`;
 
     console.log('Prompt envoyé à Ollama:', finalPrompt.substring(0, 200) + (finalPrompt.length > 200 ? '...' : ''));
 
