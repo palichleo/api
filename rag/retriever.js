@@ -1,21 +1,8 @@
 // rag/retriever.js
-const { ChromaClient, LocalEmbeddingFunction } = require('chromadb');
+const { ChromaClient } = require('chromadb');
 const { embed } = require('./embedder');
 
 const chroma = new ChromaClient({ host: 'localhost', port: 8000 });
-
-// Définition de notre fonction d'embedding personnalisée
-const embeddingFunction = new LocalEmbeddingFunction(async (texts) => {
-  if (typeof texts === 'string') {
-    return [await embed(texts)];
-  } else {
-    const vectors = [];
-    for (const t of texts) {
-      vectors.push(await embed(t));
-    }
-    return vectors;
-  }
-});
 
 let collection;
 
@@ -24,10 +11,7 @@ async function initCollection() {
     try {
       collection = await chroma.getCollection({ name: 'leoknowledge' });
     } catch {
-      collection = await chroma.createCollection({
-        name: 'leoknowledge',
-        embeddingFunction,
-      });
+      collection = await chroma.createCollection({ name: 'leoknowledge' });
     }
   }
   return collection;
@@ -35,17 +19,22 @@ async function initCollection() {
 
 async function addDocument(text, source = 'unknown') {
   const col = await initCollection();
+  const embedding = await embed(text);
+
   await col.add({
-    documents: [text],
     ids: [Date.now().toString()],
+    documents: [text],
     metadatas: [{ source }],
+    embeddings: [embedding],
   });
 }
 
 async function retrieveRelevant(query, k = 3) {
   const col = await initCollection();
+  const queryEmbedding = await embed(query);
+
   const results = await col.query({
-    queryTexts: [query],
+    queryEmbeddings: [queryEmbedding],
     nResults: k,
   });
 
