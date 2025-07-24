@@ -5,7 +5,7 @@ const fs = require('fs');
 let embedder;
 async function initEmbedder() {
   if (!embedder) {
-    embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    embedder = await pipeline('feature-extraction', 'Xenova/sentence-transformers-clip-ViT-B-32-multilingual-v1');
   }
   return embedder;
 }
