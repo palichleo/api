@@ -53,7 +53,7 @@ app.post('/ask', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'mistral:7b',
+        model: 'gemma2:2b',
         prompt: finalPrompt,
         stream: true
       })
