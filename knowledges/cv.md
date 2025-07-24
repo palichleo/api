@@ -37,14 +37,14 @@ Date : 2020 – 2023
 
 ## Stage de recherche – IA générative  
 Lieu : Équipe de Recherche sur les Processus Innovatifs, Nancy  
-Date : 2024 (2 mois, terminé)  
+Date : 2024 - 2025 (2 mois, terminé)  
 - Étude de la contribution de l’IA générative à l’innovation numérique, plus précisément dans le rôle de l'IA générative sur l'apprentissage en étude supérieure.
 - Etude sur la capacité de l'IA générative à produire une inovation, et à faire preuve de 'créativité'. 
 - Participation à un workshop sur la transition vers l’industrie 4.0 (travail d’équipe pluridisciplinaire).
 
 ## Stage en neuropsychologie  
 Lieu : Cabinet libéral, Nancy  
-Date : 2023 (70h, terminé)  
+Date : 2023 - 2024 (70h, terminé)  
 - Observation d’évaluations psychologiques (entretiens et tests)  
 - Dépistage de troubles neurodéveloppementaux
 - Aide à la passation de tests psychométriques
