@@ -90,7 +90,7 @@ function lexicalScore(query, text) {
   return s;
 }
 
-async function retrieveRelevant(query, kFinal = 3, kInitial = 12) {
+async function retrieveRelevant(query, kFinal = 5, kInitial = 20) {
   const col = await initCollection();
   const queryEmbedding = await embed(query);
 
