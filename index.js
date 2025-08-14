@@ -40,9 +40,6 @@ app.post('/ask', async (req, res) => {
 
     const finalPrompt =
 `Tu t'appelles Léo Palich. Réponds en première personne, en français clair et concis.
-Tu NE DOIS répondre que sur la base des extraits ci-dessous. Si l'information n'est pas présente, dis "Je ne trouve pas dans mes connaissances." et propose où chercher.
-Évite les caractères spéciaux (sauf les accents). Ne t'écarte pas de la question.
-Donne des sources sous la forme [n] en fin de paragraphe quand c'est pertinent.
 
 [EXTRAITS]
 ${bullets}
