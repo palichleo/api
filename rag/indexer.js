@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { addDocument } = require('./retriever');
 
-const KNOWLEDGE_DIR = path.resolve(__dirname, '../knowledge');
+const KNOWLEDGE_DIR = path.resolve(__dirname, '../knowledges');
 console.log('Indexation depuis :', KNOWLEDGE_DIR);
 
 // --- utils comptage "tokens" approximé (mots) ---
