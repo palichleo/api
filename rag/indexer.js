@@ -106,7 +106,7 @@ function splitMarkdownSmart(text, {
   }
 
   // Filtrer les micro‑chunks
-  return chunks.filter(c => c.length > 30);
+  return chunks.filter(c => c.trim().split('\n').filter(Boolean).length >= 1);
 }
 
 // --- main ---
@@ -119,9 +119,9 @@ async function indexKnowledge() {
   for (const file of files) {
     const content = fs.readFileSync(path.join(KNOWLEDGE_DIR, file), 'utf8');
     const chunks = splitMarkdownSmart(content, {
-      targetTokensMin: 600,
-      targetTokensMax: 900,
-      overlapTokens: 100
+      targetTokensMin: 100,
+      targetTokensMax: 800,
+      overlapTokens: 80
     });
 
     for (const chunk of chunks) {
