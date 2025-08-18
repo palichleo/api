@@ -1,6 +1,6 @@
 const { pipeline, env } = require('@xenova/transformers');
 env.allowRemoteModels = true;
-const MODEL_ID = process.env.RERANK_MODEL || 'cross-encoder/ms-marco-MiniLM-L-6-v2';
+const MODEL_ID = process.env.RERANK_MODEL || 'cross-encoder/bge-reranker-base';
 const MAX_CHARS = parseInt(process.env.RERANK_TRUNC || '1200', 10); // ~500-600 tokens
 const BATCH = parseInt(process.env.RERANK_BATCH || '8', 10);
 
