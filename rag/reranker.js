@@ -39,18 +39,25 @@ async function rerankCrossEncoder(query, candidates) {
 
   // batching
   for (let i = 0; i < candidates.length; i += BATCH) {
-    const batchPairs = candidates.slice(i, i + BATCH).map(c => {
+    const batchTexts = candidates.slice(i, i + BATCH).map(c => {
       const d = String(c.text ?? '');
       const qT = q.slice(0, MAX_CHARS);
       const dT = d.length > MAX_CHARS ? (d.slice(0, MAX_CHARS) + '…') : d;
-      return [qT, dT];                 // <-- PAIRE [query, doc]
+      
+      // ✅ Format STRING pour cross-encoder (pas array)
+      return `Query: ${qT} Document: ${dT}`;
     });
 
-    const out = await ranker(batchPairs, { topk: 1 });
-    const arr = Array.isArray(out[0]) ? out : out.map(x => [x]);
+    // ✅ Passe des strings, pas des arrays
+    const out = await ranker(batchTexts);
+    
+    // Handle les différents formats de sortie
+    const results = Array.isArray(out) ? out : [out];
 
-    for (let j = 0; j < arr.length; j++) {
-      const score = arr[j][0]?.score ?? 0;
+    for (let j = 0; j < results.length && (i + j) < candidates.length; j++) {
+      const result = results[j];
+      // Extrait le score (peut être .score ou .LABEL_1 selon le modèle)
+      const score = result?.score ?? result?.LABEL_1 ?? 0;
       scored.push({ ...candidates[i + j], rerank: score });
     }
   }
@@ -58,6 +65,5 @@ async function rerankCrossEncoder(query, candidates) {
   scored.sort((a, b) => b.rerank - a.rerank);
   return scored;
 }
-
 
 module.exports = { rerankCrossEncoder };
