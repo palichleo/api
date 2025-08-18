@@ -74,7 +74,7 @@ async function retrieveRelevant(query, kFinal = 5, kInitial = 20) {
 const results = await col.query({
   queryEmbeddings: [queryEmbedding],
   nResults: kInitial,
-  include: ['documents','metadatas','distances','embeddings','ids'] // <—
+  include: ['documents','metadatas','distances','embeddings'] // <—
 });
 
 const docs  = results.documents[0]  || [];
