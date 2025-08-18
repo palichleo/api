@@ -34,20 +34,21 @@ async function getReranker() {
 
 async function rerankCrossEncoder(query, candidates) {
   const ranker = await getReranker();
-  const q = (query ?? '').toString();         // <- évite "text.split is not a function"
+  const q = String(query ?? '');
   const scored = [];
 
+  // batching
   for (let i = 0; i < candidates.length; i += BATCH) {
-    const batch = candidates.slice(i, i + BATCH).map(c => {
-      const d = (c.text ?? '').toString();
-      return {
-        text:      q.slice(0, MAX_CHARS),
-        text_pair: d.length > MAX_CHARS ? (d.slice(0, MAX_CHARS) + '…') : d,
-      };
+    const batchPairs = candidates.slice(i, i + BATCH).map(c => {
+      const d = String(c.text ?? '');
+      const qT = q.slice(0, MAX_CHARS);
+      const dT = d.length > MAX_CHARS ? (d.slice(0, MAX_CHARS) + '…') : d;
+      return [qT, dT];                 // <-- PAIRE [query, doc]
     });
 
-    const out = await ranker(batch, { topk: 1 });
+    const out = await ranker(batchPairs, { topk: 1 });
     const arr = Array.isArray(out[0]) ? out : out.map(x => [x]);
+
     for (let j = 0; j < arr.length; j++) {
       const score = arr[j][0]?.score ?? 0;
       scored.push({ ...candidates[i + j], rerank: score });
@@ -57,5 +58,6 @@ async function rerankCrossEncoder(query, candidates) {
   scored.sort((a, b) => b.rerank - a.rerank);
   return scored;
 }
+
 
 module.exports = { rerankCrossEncoder };

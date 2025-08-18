@@ -90,8 +90,8 @@ Date : 2023 - 2024 (70h, terminé)
 # Informations complémentaires
 
 - Permis B + véhicule personnel  
-- palichleo@gmail.com  
-- 06.95.02.40.54  
+- adresse mail : palichleo@gmail.com  
+- numéro de téléphone : 06.95.02.40.54  
 
 ---
 # Contact
