@@ -5,7 +5,7 @@ const fs = require('fs');
 let embedder;
 async function initEmbedder() {
   if (!embedder) {
-    embedder = await pipeline('feature-extraction', 'Xenova/LaBSE');
+    embedder = await pipeline('feature-extraction', 'Xenova/bge-m3');
   }
   return embedder;
 }

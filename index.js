@@ -39,7 +39,7 @@ app.post('/ask', async (req, res) => {
     const bullets = relevant.map((c, i) => `• [${i+1}] (source: ${c.source})\n${c.text}`).join('\n\n');
 
     const finalPrompt =
-`Réponds en première personne, en français clair et concis.
+`Réponds en première personne, en français clair et concis. Réponse courte uniquement.
 
 [EXTRAITS]
 ${bullets}

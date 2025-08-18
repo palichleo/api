@@ -14,9 +14,9 @@ function countTokens(text) {
 
 // Conserve les sections markdown par titres, sans casser les code-blocks.
 function splitMarkdownSmart(text, {
-  targetTokensMin = 20,
-  targetTokensMax = 900,
-  overlapTokens = 100
+  targetTokensMin = 50,
+  targetTokensMax = 350,
+  overlapTokens = 60
 } = {}) {
 
   const lines = text.replace(/\r\n/g, '\n').split('\n');
@@ -119,9 +119,9 @@ async function indexKnowledge() {
   for (const file of files) {
     const content = fs.readFileSync(path.join(KNOWLEDGE_DIR, file), 'utf8');
     const chunks = splitMarkdownSmart(content, {
-      targetTokensMin: 20,
-      targetTokensMax: 800,
-      overlapTokens: 80
+      targetTokensMin: 50,
+      targetTokensMax: 350,
+      overlapTokens: 60
     });
 
     for (const chunk of chunks) {
