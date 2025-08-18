@@ -60,7 +60,7 @@ ${bullets}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'smollm:135m',
+        model: 'gemma2:2b',
         prompt: finalPrompt,
         stream: true,
         options: {
