@@ -1,7 +1,7 @@
 // rag/reranker.js
 const { pipeline, env } = require('@xenova/transformers');
-env.allowRemoteModels = true;                 // ou false si tu mets le modèle en local
-// env.localModelPath = '/opt/models';       // décommente si tu clones en local
+env.allowRemoteModels = false;
+env.localModelPath = '/opt/models';
 
 const USER_MODEL = process.env.RERANK_MODEL || '';
 const CANDIDATES = [
