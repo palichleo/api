@@ -53,7 +53,7 @@ ${bullets}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'qwen2.5:3b-instruct-q4_K_M',
+        model: 'mistral:7b',
         prompt: finalPrompt,
         stream: true,
         options: {
