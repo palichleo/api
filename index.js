@@ -53,7 +53,7 @@ ${bullets}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'mistral:7b',
+        model: 'phi3:mini',
         prompt: finalPrompt,
         stream: true,
         options: {
