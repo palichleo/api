@@ -60,8 +60,8 @@ ${bullets}
           temperature: 0.2,
           top_p: 0.9,
           repeat_penalty: 1.05,
-          num_ctx: 4096,
-          num_predict: 512,
+          num_ctx: 2048,
+          num_predict: 384,
           num_thread: 0
         }
       })

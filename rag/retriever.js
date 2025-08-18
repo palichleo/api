@@ -70,31 +70,29 @@ async function retrieveRelevant(query, kFinal = 5, kInitial = 20) {
   const col = await initCollection();
   const queryEmbedding = await embed(query);
 
-  // 1) Récup large depuis Chroma
-  const results = await col.query({
-    queryEmbeddings: [queryEmbedding],
-    nResults: kInitial
-  });
+  // 1) Inclure les embeddings côté Chroma
+const results = await col.query({
+  queryEmbeddings: [queryEmbedding],
+  nResults: kInitial,
+  include: ['documents','metadatas','distances','embeddings','ids'] // <—
+});
 
-  const docs  = results.documents[0] || [];
-  const metas = results.metadatas[0] || [];
-  const dists = results.distances[0] || [];
-  if (docs.length === 0) return [];
+const docs  = results.documents[0]  || [];
+const metas = results.metadatas[0]  || [];
+const dists = results.distances[0]  || [];
+const embs  = results.embeddings[0] || [];   // <— embeddings des docs, déjà calculés
+if (docs.length === 0) return [];
 
-  // 2) Ré-encode local pour MMR (kInitial petit -> OK CPU)
-  const candEmbeddings = [];
-  for (const text of docs) candEmbeddings.push(await embed(text));
+// 2) MMR en utilisant les embeddings retournés (PAS de ré-encode)
+const mmrIdx = mmr(queryEmbedding, embs, Math.min(kFinal * 2, docs.length), 0.5);
 
-  // 3) MMR pour diversité (on garde ~2×kFinal)
-  const mmrIdx = mmr(queryEmbedding, candEmbeddings, Math.min(kFinal * 2, docs.length), 0.5);
-
-  // 4) Sous-ensemble candidats
-  const subset = mmrIdx.map(i => ({
-    text: docs[i],
-    source: metas[i]?.source || 'inconnu',
-    rawDistance: dists[i],
-    cosSim: cosine(queryEmbedding, candEmbeddings[i])
-  }));
+// 3) Sous-ensemble pour le rerank
+const subset = mmrIdx.map(i => ({
+  text: docs[i],
+  source: metas[i]?.source || 'inconnu',
+  rawDistance: dists[i],
+  cosSim: cosine(queryEmbedding, embs[i])
+}));
 
   // 5) Rerank cross-encoder (CPU). Fallback lexical si indispo.
   let reranked;
