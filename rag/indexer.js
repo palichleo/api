@@ -11,7 +11,7 @@ function splitMarkdownSmart(text, {
   targetTokensMax = 280,
   overlapTokens = 20
 } = {}) {
-  // version simple et robuste (garde les titres, évite de couper les fences)
+  // simple & robuste (garde les titres, évite de couper les fences)
   const lines = text.split('\n');
   const chunks = [];
   let buf = [];
@@ -19,11 +19,10 @@ function splitMarkdownSmart(text, {
   let inFence = false;
 
   const flush = () => {
-    if (buf.length === 0) return;
+    if (!buf.length) return;
     const chunk = buf.join('\n').trim();
     if (chunk) chunks.push(chunk);
-    buf = [];
-    tokens = 0;
+    buf = []; tokens = 0;
   };
 
   for (const line of lines) {
@@ -32,7 +31,6 @@ function splitMarkdownSmart(text, {
     const addTokens = Math.max(1, Math.ceil(add.split(/\s+/).length * 0.9));
     if (!inFence && tokens + addTokens > targetTokensMax) {
       flush();
-      // overlap simple
       if (overlapTokens > 0) {
         const words = line.split(/\s+/);
         buf = words.slice(Math.max(0, words.length - overlapTokens));
@@ -58,17 +56,14 @@ async function indexDir(dir = ROOT) {
     totalChunks += chunks.length;
     console.log(`[${file}] ${chunks.length} chunk(s)`);
 
-    // 🟢 envoi en batch
     for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-      const slice = chunks.slice(i, i + BATCH_SIZE)
-        .map(text => ({ text, source: file }));
+      const slice = chunks.slice(i, i + BATCH_SIZE).map(text => ({ text, source: file }));
       await addDocuments(slice);
       if (chunks.length > BATCH_SIZE) {
         console.log(`  -> batch ${i + 1}-${Math.min(i + BATCH_SIZE, chunks.length)} / ${chunks.length}`);
       }
     }
   }
-
   console.log(`✅ Indexation terminée : ${totalFiles} fichier(s), ${totalChunks} chunk(s).`);
 }
 

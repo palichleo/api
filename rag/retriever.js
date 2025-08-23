@@ -3,7 +3,10 @@ const crypto = require('crypto');
 const { ChromaClient } = require('chromadb');
 const { embed, embedMany } = require('./embedder');
 
-const client = new ChromaClient({ path: 'http://localhost:8000' });
+const hr = () => Number(process.hrtime.bigint()) / 1e6; // ms
+
+// Utiliser l'API conseillée (évite le warning "path deprecated")
+const client = new ChromaClient({ host: 'localhost', port: 8000, ssl: false });
 let collection = null;
 
 async function initCollection() {
@@ -14,11 +17,10 @@ async function initCollection() {
   if (found) {
     collection = await client.getCollection({ name, embeddingFunction: null });
   } else {
-    // ✅ forcer l’espace cosine côté index (cohérent avec tes vecteurs normalisés)
     collection = await client.createCollection({
       name,
       embeddingFunction: null,
-      metadata: { 'hnsw:space': 'cosine' }
+      metadata: { 'hnsw:space': 'cosine' } // cohérent avec embeddings normalisés
     });
   }
   return collection;
@@ -50,7 +52,7 @@ async function addDocuments(items) {
   });
 }
 
-// --- utils cosine/MMR (rapides)
+// --- utils cosine/MMR (pour mode "qualité")
 function dot(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
 function norm(a) { return Math.sqrt(dot(a, a)); }
 function cosine(a, b) { return dot(a, b) / (norm(a) * norm(b) + 1e-10); }
@@ -60,7 +62,6 @@ function mmr(queryEmb, candEmbs, lambda = 0.65, topK = 6) {
   const selected = [];
   const used = new Set();
   const simToQuery = candEmbs.map(e => cosine(queryEmb, e));
-
   while (selected.length < Math.min(topK, n)) {
     let best = -1, bestScore = -Infinity;
     for (let i = 0; i < n; i++) {
@@ -76,49 +77,69 @@ function mmr(queryEmb, candEmbs, lambda = 0.65, topK = 6) {
   return selected;
 }
 
-async function retrieveRelevant(query, kFinal = 3, kInitial = 12) {
+/**
+ * retrieveRelevant(query, kFinal=3, kInitial=12, dbg={})
+ * - dbg reçoit des timings: t_embed_ms, t_chroma_ms, t_mmr_ms, t_retrieve_ms
+ * - FAST=1 -> pas d'embeddings renvoyés, pas de MMR (retour direct Chroma)
+ */
+async function retrieveRelevant(query, kFinal = 3, kInitial = 12, dbg = {}) {
   const col = await initCollection();
-  const qEmb = await embed(query);
 
+  const t0 = hr();
+  const qEmb = await embed(query);
+  const t1 = hr();
+  dbg.t_embed_ms = +(t1 - t0).toFixed(2);
+
+  const FAST = process.env.FAST === '1';
+  const t2 = hr();
   const res = await col.query({
     queryEmbeddings: [qEmb],
-    nResults: kInitial,
-    include: ['documents', 'metadatas', 'distances', 'embeddings'],
+    nResults: FAST ? kFinal : kInitial,
+    include: FAST
+      ? ['documents', 'metadatas', 'distances']
+      : ['documents', 'metadatas', 'distances', 'embeddings'],
   });
+  const t3 = hr();
+  dbg.t_chroma_ms = +(t3 - t2).toFixed(2);
 
   const docs = res.documents?.[0] || [];
   const metas = res.metadatas?.[0] || [];
   const dists = res.distances?.[0] || [];
-  const embs  = res.embeddings?.[0] || [];
+  const embs  = FAST ? [] : (res.embeddings?.[0] || []);
 
   if (!docs.length) return [];
 
-  // Tri initial par similarité cosine (plus stable que 'distance' renvoyée)
-  const sims = embs.map(e => cosine(qEmb, e));
-  const order = sims
-    .map((s, i) => ({ i, s }))
-    .sort((a, b) => b.s - a.s)
-    .map(o => o.i);
+  if (FAST) {
+    // ⚡ turbo: confiance au tri Chroma (cosine) et renvoi direct
+    return docs.map((text, i) => ({
+      i,
+      source: metas[i]?.source || 'unknown',
+      score: +(1 - (dists[i] ?? 0)).toFixed(4),
+      text
+    }));
+  }
 
+  const t4 = hr();
+  // Mode "qualité" (cosine + MMR côté Node)
+  const sims = embs.map(e => cosine(qEmb, e));
+  const order = sims.map((s, i) => ({ i, s })).sort((a, b) => b.s - a.s).map(o => o.i);
   const orderedDocs  = order.map(i => docs[i]);
   const orderedMetas = order.map(i => metas[i]);
   const orderedEmbs  = order.map(i => embs[i]);
 
-  // Diversification MMR puis top-kFinal
   const mmrIdxs = mmr(qEmb, orderedEmbs, 0.65, Math.min(kFinal * 2, orderedDocs.length));
   const subset = mmrIdxs.map(i => ({
     text: orderedDocs[i],
     source: orderedMetas[i]?.source || 'unknown',
     cosSim: cosine(qEmb, orderedEmbs[i]),
   }));
+  const t5 = hr();
+  dbg.t_mmr_ms = +(t5 - t4).toFixed(2);
 
-  // ✅ pas de rerank (cross-encoder) — vitesse maximale CPU
-  const top = subset
+  return subset
     .sort((a, b) => b.cosSim - a.cosSim)
     .slice(0, kFinal)
     .map((x, i) => ({ i, source: x.source, score: +x.cosSim.toFixed(4), text: x.text }));
-
-  return top;
 }
 
 module.exports = { addDocument, addDocuments, retrieveRelevant };
