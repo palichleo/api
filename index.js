@@ -9,11 +9,33 @@ const app = express();
 const PORT = 3000;
 
 const hr = () => Number(process.hrtime.bigint()) / 1e6; // ms
-function addServerTiming(res, metrics) {
-  const parts = Object.entries(metrics).map(([k,v]) => `${k};dur=${v}`);
-  const prev = res.getHeader('Server-Timing');
-  res.setHeader('Server-Timing', prev ? prev + ', ' + parts.join(', ') : parts.join(', '));
+
+// Ajoute des timings soit en header (avant envoi), soit en trailer (après envoi)
+function addServerTiming(res, metrics, { trailer = false } = {}) {
+  const parts = Object.entries(metrics).map(([k, v]) => `${k};dur=${v}`);
+  const value = parts.join(', ');
+  try {
+    if (trailer) {
+      // Trailer: Server-Timing doit avoir été défini AVANT d'envoyer le corps
+      if (typeof res.addTrailers === 'function') {
+        res.addTrailers({ 'Server-Timing': value });
+      }
+      return;
+    }
+    if (res.headersSent) {
+      // Si déjà envoyé → on bascule en trailer (si dispo)
+      if (typeof res.addTrailers === 'function') {
+        res.addTrailers({ 'Server-Timing': value });
+      }
+      return;
+    }
+    const prev = res.getHeader('Server-Timing');
+    res.setHeader('Server-Timing', prev ? String(prev) + ', ' + value : value);
+  } catch (_) {
+    // ignore
+  }
 }
+
 function trunc(s, max = 800) {
   if (!s || s.length <= max) return s || '';
   return s.slice(0, max) + '…';
@@ -21,7 +43,7 @@ function trunc(s, max = 800) {
 
 async function warmup() {
   try {
-    const model = process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct-q4_0';
+    const model = process.env.OLLAMA_MODEL || 'phi3:mini';
     await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,11 +112,12 @@ ${context}
     console.log('Prompt envoyé à Ollama:', finalPrompt.substring(0, 200) + (finalPrompt.length > 200 ? '...' : ''));
 
     const t2 = hr();
+    const model = process.env.OLLAMA_MODEL || 'phi3:mini';
     const ollamaRes = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.OLLAMA_MODEL || 'qwen2.5:1.5b-instruct-q4_0',
+        model,
         prompt: finalPrompt,
         stream: true,
         options: {
@@ -117,10 +140,12 @@ ${context}
       throw new Error(`Ollama error: ${ollamaRes.status} - ${errorText}`);
     }
 
+    // IMPORTANT : déclarer le trailer AVANT d'écrire le corps
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Trailer', 'Server-Timing');
 
-    // Server‑Timing (partie déjà connue)
+    // Timings "pré‑stream" : on peut les mettre en header ici (avant envoi)
     addServerTiming(res, {
       emb: dbg.t_embed_ms ?? 0,
       chroma: dbg.t_chroma_ms ?? 0,
@@ -137,9 +162,24 @@ ${context}
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
 
+    // Timeout d’inactivité sur le stream (ex: 20 s sans token -> 504)
+    const STREAM_IDLE_MS = 20000;
+    let idleTimer = setTimeout(() => {
+      try { res.write('\n\n[stream idle timeout]\n'); } catch (_) {}
+      try { res.end(); } catch (_) {}
+      console.error('[STREAM] Idle timeout, fin de réponse.');
+    }, STREAM_IDLE_MS);
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        try { res.write('\n\n[stream idle timeout]\n'); } catch (_) {}
+        try { res.end(); } catch (_) {}
+        console.error('[STREAM] Idle timeout, fin de réponse.');
+      }, STREAM_IDLE_MS);
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
@@ -152,11 +192,14 @@ ${context}
           if (ttft_ms === null) ttft_ms = +(hr() - t_stream_start).toFixed(2);
           lastChunk = data;
           if (data.response) res.write(data.response);
-        } catch {
-          // ignore line parse errors
+        } catch (e) {
+          // Si Ollama renvoie autre chose que du JSON (erreur), on log la ligne brute
+          console.warn('[STREAM] ligne non JSON:', line.slice(0, 200));
         }
       }
     }
+
+    clearTimeout(idleTimer);
 
     const t_done = hr();
     const gen_ms = +(t_done - t_stream_start).toFixed(2);
@@ -165,11 +208,13 @@ ${context}
       const evalSec = lastChunk.eval_duration / 1e9;
       tok_s = evalSec > 0 ? +(lastChunk.eval_count / evalSec).toFixed(2) : null;
     }
+
+    // Timings "post‑stream" : on les envoie en TRAILER (pas en header)
     addServerTiming(res, {
       ttft: ttft_ms ?? 0,
       gen: gen_ms,
       toks: tok_s ?? 0
-    });
+    }, { trailer: true });
 
     res.end();
     console.log('[TIMINGS]', {
