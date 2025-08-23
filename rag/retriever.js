@@ -1,6 +1,6 @@
 // rag/retriever.js
 const crypto = require('crypto');
-const ChromaClient = require('chromadb').default;
+const { ChromaClient } = require('chromadb');
 const { embed, embedMany } = require('./embedder');
 
 const client = new ChromaClient({ path: 'http://localhost:8000' });
