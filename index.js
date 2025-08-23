@@ -50,8 +50,17 @@ async function warmup() {
       body: JSON.stringify({
         model,
         prompt: 'Bonjour',
-        stream: false,
-        options: { num_ctx: 256, num_predict: 1 }
+        stream: true,
+        keep_alive: '1h',
+        options: {
+          temperature: 0.1,
+          top_p: 0.9,
+          repeat_penalty: 1.1,
+          num_ctx: 1024,
+          num_predict: 120,
+          num_thread: Math.max(1, Math.min(os.cpus().length, 4)),
+          num_batch: 16
+        }
       })
     });
     console.log(`[WARMUP] OK (${model})`);
