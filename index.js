@@ -10,6 +10,12 @@ const PORT = 3000;
 
 const hr = () => Number(process.hrtime.bigint()) / 1e6; // ms
 
+res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+res.setHeader('Transfer-Encoding', 'chunked');
+res.setHeader('Cache-Control', 'no-cache, no-transform');
+res.setHeader('Connection', 'keep-alive');
+res.setHeader('X-Accel-Buffering', 'no');
+
 // Ajoute des timings soit en header (avant envoi), soit en trailer (après envoi)
 function addServerTiming(res, metrics, { trailer = false } = {}) {
   const parts = Object.entries(metrics).map(([k, v]) => `${k};dur=${v}`);
@@ -44,7 +50,7 @@ function trunc(s, max = 800) {
 async function warmup() {
   try {
     const model = process.env.OLLAMA_MODEL || 'phi3:mini';
-    await fetch('http://localhost:11434/api/generate', {
+    await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -57,8 +63,8 @@ async function warmup() {
           top_p: 0.9,
           repeat_penalty: 1.1,
           num_ctx: 1024,
-          num_predict: 120,
-          num_thread: Math.max(1, Math.min(os.cpus().length, 4)),
+          num_predict: 60,
+          num_thread: 4,
           num_batch: 16
         }
       })
@@ -137,7 +143,6 @@ ${context}
           num_predict: 120,
           num_thread: Math.max(1, Math.min(os.cpus().length, 4)),
           num_batch: 16,
-          keep_alive: '10m'
         }
       })
     });
