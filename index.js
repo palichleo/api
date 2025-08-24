@@ -10,12 +10,6 @@ const PORT = 3000;
 
 const hr = () => Number(process.hrtime.bigint()) / 1e6; // ms
 
-res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-res.setHeader('Transfer-Encoding', 'chunked');
-res.setHeader('Cache-Control', 'no-cache, no-transform');
-res.setHeader('Connection', 'keep-alive');
-res.setHeader('X-Accel-Buffering', 'no');
-
 // Ajoute des timings soit en header (avant envoi), soit en trailer (après envoi)
 function addServerTiming(res, metrics, { trailer = false } = {}) {
   const parts = Object.entries(metrics).map(([k, v]) => `${k};dur=${v}`);
@@ -148,6 +142,12 @@ ${context}
     });
     const t3 = hr();
     dbg.t_ollama_req_ms = +(t3 - t2).toFixed(2);
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     if (!ollamaRes.ok || !ollamaRes.body) {
       const errorText = await ollamaRes.text().catch(() => '');
