@@ -16,14 +16,12 @@ function addServerTiming(res, metrics, { trailer = false } = {}) {
   const value = parts.join(', ');
   try {
     if (trailer) {
-      // Trailer: Server-Timing doit avoir été défini AVANT d'envoyer le corps
       if (typeof res.addTrailers === 'function') {
         res.addTrailers({ 'Server-Timing': value });
       }
       return;
     }
     if (res.headersSent) {
-      // Si déjà envoyé → on bascule en trailer (si dispo)
       if (typeof res.addTrailers === 'function') {
         res.addTrailers({ 'Server-Timing': value });
       }
@@ -31,9 +29,7 @@ function addServerTiming(res, metrics, { trailer = false } = {}) {
     }
     const prev = res.getHeader('Server-Timing');
     res.setHeader('Server-Timing', prev ? String(prev) + ', ' + value : value);
-  } catch (_) {
-    // ignore
-  }
+  } catch (_) {}
 }
 
 function trunc(s, max = 800) {
@@ -122,44 +118,42 @@ ${context}
 
     const t2 = hr();
     const model = process.env.OLLAMA_MODEL || 'phi3:mini';
-    const ollamaRes = await fetch('http://localhost:11434/api/generate', {
+    const ollamaRes = await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
         prompt: finalPrompt,
         stream: true,
+        keep_alive: '1h', // ← top-level (PAS dans options)
         options: {
           temperature: 0.1,
           top_p: 0.9,
           repeat_penalty: 1.1,
           num_ctx: 1024,
-          num_predict: 120,
-          num_thread: Math.max(1, Math.min(os.cpus().length, 4)),
-          num_batch: 16,
+          num_predict: 80,
+          num_thread: 4,
+          num_batch: 16
         }
       })
     });
     const t3 = hr();
     dbg.t_ollama_req_ms = +(t3 - t2).toFixed(2);
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-
     if (!ollamaRes.ok || !ollamaRes.body) {
       const errorText = await ollamaRes.text().catch(() => '');
       throw new Error(`Ollama error: ${ollamaRes.status} - ${errorText}`);
     }
 
-    // IMPORTANT : déclarer le trailer AVANT d'écrire le corps
+    // Headers streaming (déclarés une seule fois avant tout res.write)
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Trailer', 'Server-Timing');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');   // Nginx: désactive le buffering
+    res.setHeader('Trailer', 'Server-Timing');  // timings envoyés en fin de flux
 
-    // Timings "pré‑stream" : on peut les mettre en header ici (avant envoi)
+    // Timings "pré-stream" (en header, avant écriture du corps)
     addServerTiming(res, {
       emb: dbg.t_embed_ms ?? 0,
       chroma: dbg.t_chroma_ms ?? 0,
@@ -176,7 +170,7 @@ ${context}
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
 
-    // Timeout d’inactivité sur le stream (ex: 20 s sans token -> 504)
+    // Timeout d’inactivité sur le stream (ex: 20 s sans token -> fin)
     const STREAM_IDLE_MS = 20000;
     let idleTimer = setTimeout(() => {
       try { res.write('\n\n[stream idle timeout]\n'); } catch (_) {}
@@ -207,7 +201,6 @@ ${context}
           lastChunk = data;
           if (data.response) res.write(data.response);
         } catch (e) {
-          // Si Ollama renvoie autre chose que du JSON (erreur), on log la ligne brute
           console.warn('[STREAM] ligne non JSON:', line.slice(0, 200));
         }
       }
@@ -223,7 +216,7 @@ ${context}
       tok_s = evalSec > 0 ? +(lastChunk.eval_count / evalSec).toFixed(2) : null;
     }
 
-    // Timings "post‑stream" : on les envoie en TRAILER (pas en header)
+    // Timings "post-stream" : envoyés en TRAILER
     addServerTiming(res, {
       ttft: ttft_ms ?? 0,
       gen: gen_ms,
