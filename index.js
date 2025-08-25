@@ -46,14 +46,12 @@ async function warmup() {
       body: JSON.stringify({
         model,
         prompt: 'Bonjour',
-        stream: true,
+        stream: false,
         keep_alive: '1h',
         options: {
-          temperature: 0.1,
-          top_p: 0.9,
-          repeat_penalty: 1.1,
-          num_ctx: 1024,
-          num_predict: 60,
+          temperature: 0,
+          num_ctx: 256,
+          num_predict: 1,
           num_thread: 4,
           num_batch: 16
         }
@@ -94,19 +92,15 @@ app.post('/ask', async (req, res) => {
 
     console.log('Chunks trouvés:', relevant.map((c, i) => ({ i, source: c.source, score: c.score?.toFixed?.(3) || c.score })));
 
-    const context = relevant.map((c, idx) =>
-      `- [${idx + 1}] (${c.source}) ${trunc(c.text.replace(/\s+/g, ' ').trim(), 800)}`
+    const context = relevant.slice(0,2).map((c, idx) =>
+      `- [${idx + 1}] (${c.source}) ${trunc(c.text.replace(/\s+/g, ' ').trim(), 400)}`
     ).join('\n');
 
     const finalPrompt =
 `Tu es Léo Palich. Réponds UNIQUEMENT en te basant sur les informations fournies ci-dessous.
 
 RÈGLES IMPORTANTES :
-- Tu es Léo Palich, étudiant en Sciences cognitives IA Centrée Humain
-- Utilise EXCLUSIVEMENT les informations des extraits fournis
-- Réponds en première personne ("Je suis...", "Mon numéro est...", etc.)
-- Si l'information n'est pas dans les extraits, dis "Cette information n'est pas disponible dans mes données"
-- Sois concis et direct
+Tu es Léo Palich. Sois concis et direct (40 mots max).
 
 [EXTRAITS]
 ${context}
@@ -128,10 +122,10 @@ ${context}
         keep_alive: '1h', // ← top-level (PAS dans options)
         options: {
           temperature: 0.1,
-          top_p: 0.9,
-          repeat_penalty: 1.1,
-          num_ctx: 1024,
-          num_predict: 80,
+          top_p: 0.8,
+          repeat_penalty: 1.05,
+          num_ctx: 768,
+          num_predict: 48,
           num_thread: 4,
           num_batch: 16
         }
