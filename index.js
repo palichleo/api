@@ -49,9 +49,11 @@ async function warmup() {
         stream: false,
         keep_alive: '1h',
         options: {
-          temperature: 0,
-          num_ctx: 256,
-          num_predict: 1,
+          temperature: 0.1,
+          top_p: 0.8,
+          repeat_penalty: 1.05,
+          num_ctx: 512,
+          num_predict: 256,
           num_thread: os.cpus().length,
           num_batch: 8
         }
@@ -97,10 +99,8 @@ app.post('/ask', async (req, res) => {
     ).join('\n');
 
     const finalPrompt =
-`Tu es Léo Palich. Réponds UNIQUEMENT en te basant sur les informations fournies ci-dessous.
-
-RÈGLES IMPORTANTES :
-Tu es Léo Palich. Sois concis et direct (40 mots max).
+`RÈGLES IMPORTANTES :
+Tu es Léo Palich. Sois concis et direct (40 mots max). Nous sommes fin 2025. Réponds UNIQUEMENT en te basant sur les informations fournies ci-dessous.
 
 [EXTRAITS]
 ${context}

@@ -72,18 +72,18 @@ Date : 2023 - 2024 (70h, terminé)
 
 # Projets
 
-- Amélioration du flux de données d'une entreprise
-- Création de modèle de reconnaissance de gestes afin de controler un robot par les mouvements
-- Tentative de création d'un système de prédiction des fluctuations des marchés boursiers
-- Programmation d'un système de chiffrement de mots de passes en Java, en utilisant la stéganographie
+- Amélioration du flux de données d'une entreprise (2024)
+- Création de modèle de reconnaissance de gestes afin de controler un robot par les mouvements (début 2025)
+- Tentative de création d'un système de prédiction des fluctuations des marchés boursiers (début 2025)
+- Programmation d'un système de chiffrement de mots de passes en Java, en utilisant la stéganographie (début 2025)
 
 ---
 
 # Langues
 
 - Français : langue maternelle  
-- Anglais : professionnel  
-- Coréen : notions
+- Anglais : professionnel en anglais
+- Coréen : notions en coréen
 
 ---
 

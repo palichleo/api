@@ -1,4 +1,4 @@
-# Projet : Détection de gestes de la main pour contrôle robotique
+# Projet : Détection de gestes de la main pour contrôle robotique (début 2025)
 
 ## Identité
 **Auteur :** Léo Palich (en collaboration avec un groupe de projet académique)  
