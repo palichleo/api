@@ -45,15 +45,15 @@ async function warmup() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        prompt: 'Bonjour',
+        prompt: 'Explique moi un texte en français.',
         stream: false,
         keep_alive: '1h',
         options: {
           temperature: 0,
           num_ctx: 256,
           num_predict: 1,
-          num_thread: 4,
-          num_batch: 16
+          num_thread: os.cpus().length,
+          num_batch: 8
         }
       })
     });
@@ -124,10 +124,10 @@ ${context}
           temperature: 0.1,
           top_p: 0.8,
           repeat_penalty: 1.05,
-          num_ctx: 768,
-          num_predict: 48,
-          num_thread: 4,
-          num_batch: 16
+          num_ctx: 512,
+          num_predict: 256,
+          num_thread: os.cpus().length,
+          num_batch: 8
         }
       })
     });

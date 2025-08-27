@@ -2,13 +2,10 @@
 const { pipeline, env } = require('@xenova/transformers');
 const os = require('os');
 
-// ⚡ optimisations CPU sûres
-env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(4, os.cpus().length));
-env.allowRemoteModels = true;              // repasse à false après le 1er run si tu poses les modèles dans /opt/models
+env.backends.onnx.wasm.numThreads = os.cpus().length;
+env.allowRemoteModels = true;
 env.localModelPath = '/opt/models';
 
-// ✅ modèle rapide multilingue (bien plus vite que bge-m3 sur CPU)
-//   change via EMBED_MODEL si besoin
 const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
 
 let embedder;
@@ -26,7 +23,6 @@ async function embed(text) {
   return Array.from(out.data);
 }
 
-// ✅ batching robuste (gère Tensor batched ou array de Tensors)
 async function embedMany(texts) {
   const m = await getEmbedder();
   const out = await m(texts, { pooling: 'mean', normalize: true });

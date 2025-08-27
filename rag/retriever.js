@@ -77,11 +77,6 @@ function mmr(queryEmb, candEmbs, lambda = 0.65, topK = 6) {
   return selected;
 }
 
-/**
- * retrieveRelevant(query, kFinal=3, kInitial=12, dbg={})
- * - dbg reçoit des timings: t_embed_ms, t_chroma_ms, t_mmr_ms, t_retrieve_ms
- * - FAST=1 -> pas d'embeddings renvoyés, pas de MMR (retour direct Chroma)
- */
 async function retrieveRelevant(query, kFinal = 3, kInitial = 12, dbg = {}) {
   const col = await initCollection();
 
@@ -110,7 +105,7 @@ async function retrieveRelevant(query, kFinal = 3, kInitial = 12, dbg = {}) {
   if (!docs.length) return [];
 
   if (FAST) {
-    // ⚡ turbo: confiance au tri Chroma (cosine) et renvoi direct
+
     return docs.map((text, i) => ({
       i,
       source: metas[i]?.source || 'unknown',
@@ -120,7 +115,7 @@ async function retrieveRelevant(query, kFinal = 3, kInitial = 12, dbg = {}) {
   }
 
   const t4 = hr();
-  // Mode "qualité" (cosine + MMR côté Node)
+
   const sims = embs.map(e => cosine(qEmb, e));
   const order = sims.map((s, i) => ({ i, s })).sort((a, b) => b.s - a.s).map(o => o.i);
   const orderedDocs  = order.map(i => docs[i]);
