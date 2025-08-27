@@ -40,20 +40,20 @@ function trunc(s, max = 800) {
 
 async function warmup() {
   try {
-    const model = process.env.OLLAMA_MODEL || 'phi3:mini';
+    const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
     await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        prompt: 'Explique moi un texte en français.',
+        prompt: 'qui es tu et quels sont tes projets ?',
         stream: false,
         keep_alive: '1h',
         options: {
           temperature: 0.1,
           top_p: 0.8,
           repeat_penalty: 1.05,
-          num_ctx: 512,
+          num_ctx: 384,
           num_predict: 256,
           num_thread: os.cpus().length,
           num_batch: 16
@@ -95,18 +95,13 @@ app.post('/ask', async (req, res) => {
 
     console.log('Chunks trouvés:', relevant.map((c, i) => ({ i, source: c.source, score: c.score?.toFixed?.(3) || c.score })));
 
-    const context = relevant.slice(0,2).map((c, idx) =>
-      `- [${idx + 1}] (${c.source}) ${trunc(c.text.replace(/\s+/g, ' ').trim(), 400)}`
+    const context = relevant.slice(0,1).map((c, idx) =>
+      `- [${idx + 1}] (${c.source}) ${trunc(c.text.replace(/\s+/g, ' ').trim(), 250)}`
     ).join('\n');
 
     const finalPrompt =
 `RÈGLES IMPORTANTES :
-- Tu es Léo Palich. Sois concis et direct (40 mots max)
-- Réponds UNIQUEMENT en te basant sur les informations fournies ci-dessous.
-- Aujourd’hui nous sommes le ${today}.
-- Respecte la temporalité : si un extrait est daté avant ${today}, parle au passé. 
-- Si un extrait est daté après ${today}, parle au futur.
-- Ne transforme pas les temps.
+Tu es Léo Palich. Réponds avec mes mots, en 40 mots max. Utilise le passé pour les infos datées.
 
 [EXTRAITS]
 ${context}
@@ -117,7 +112,7 @@ ${context}
     console.log('Prompt envoyé à Ollama:', finalPrompt.substring(0, 200) + (finalPrompt.length > 200 ? '...' : ''));
 
     const t2 = hr();
-    const model = process.env.OLLAMA_MODEL || 'phi3:mini';
+    const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
     const ollamaRes = await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -130,7 +125,7 @@ ${context}
           temperature: 0.1,
           top_p: 0.8,
           repeat_penalty: 1.05,
-          num_ctx: 512,
+          num_ctx: 384,
           num_predict: 256,
           num_thread: os.cpus().length,
           num_batch: 16
