@@ -4,6 +4,7 @@ const cors = require('cors');
 const os = require('os');
 const { retrieveRelevant } = require('./rag/retriever');
 require('dotenv').config();
+const today = new Date().toISOString().split('T')[0];
 
 const app = express();
 const PORT = 3000;
@@ -55,7 +56,7 @@ async function warmup() {
           num_ctx: 512,
           num_predict: 256,
           num_thread: os.cpus().length,
-          num_batch: 8
+          num_batch: 16
         }
       })
     });
@@ -100,7 +101,12 @@ app.post('/ask', async (req, res) => {
 
     const finalPrompt =
 `RÈGLES IMPORTANTES :
-Tu es Léo Palich. Sois concis et direct (40 mots max). Nous sommes fin 2025. Réponds UNIQUEMENT en te basant sur les informations fournies ci-dessous.
+- Tu es Léo Palich. Sois concis et direct (40 mots max)
+- Réponds UNIQUEMENT en te basant sur les informations fournies ci-dessous.
+- Aujourd’hui nous sommes le ${today}.
+- Respecte la temporalité : si un extrait est daté avant ${today}, parle au passé. 
+- Si un extrait est daté après ${today}, parle au futur.
+- Ne transforme pas les temps.
 
 [EXTRAITS]
 ${context}
@@ -127,7 +133,7 @@ ${context}
           num_ctx: 512,
           num_predict: 256,
           num_thread: os.cpus().length,
-          num_batch: 8
+          num_batch: 16
         }
       })
     });
