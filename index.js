@@ -40,7 +40,7 @@ function trunc(s, max = 800) {
 
 async function warmup() {
   try {
-    const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
+    const model = process.env.OLLAMA_MODEL || 'gemma2:2b';
     await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -112,7 +112,7 @@ ${context}
     console.log('Prompt envoyé à Ollama:', finalPrompt.substring(0, 200) + (finalPrompt.length > 200 ? '...' : ''));
 
     const t2 = hr();
-    const model = process.env.OLLAMA_MODEL || 'llama3.2:1b';
+    const model = process.env.OLLAMA_MODEL || 'gemma2:2b';
     const ollamaRes = await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
