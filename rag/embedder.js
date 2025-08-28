@@ -2,16 +2,19 @@
 const { pipeline, env } = require('@xenova/transformers');
 const os = require('os');
 
-env.backends.onnx.wasm.numThreads = os.cpus().length;
+// ⚠️ on sacrifie la perf pour la qualité
+env.backends.onnx.wasm.numThreads = parseInt(process.env.EMBED_THREADS || os.cpus().length, 10);
 env.allowRemoteModels = true;
 env.localModelPath = '/opt/models';
 
-const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
+// ➜ bge-m3 (meilleur rappel que MiniLM), désactive le quant par défaut
+const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/bge-m3';
+const EMBED_QUANT = process.env.EMBED_QUANTIZED === '1'; // mets 1 si tu veux re-quantizer (plus rapide, moins précis)
 
 let embedder;
 async function getEmbedder() {
   if (!embedder) {
-    embedder = await pipeline('feature-extraction', MODEL_ID, { quantized: true });
+    embedder = await pipeline('feature-extraction', MODEL_ID, { quantized: EMBED_QUANT });
   }
   return embedder;
 }

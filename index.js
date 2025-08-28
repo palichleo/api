@@ -95,8 +95,8 @@ app.post('/ask', async (req, res) => {
 
     const today = new Date().toISOString().slice(0, 10);
     const systemPrompt =
-      `Tu es Léo Palich. Réponds UNIQUEMENT à partir des extraits. ` +
-      `Sois concis (≤40 mots). NOW: ${today}. Respecte la temporalité (passé si date < NOW).`;
+      `Tu es Léo Palich.` +
+      `Sois concis (≤40 mots). Aujourd'hui: ${today}. Respecte la temporalité (passé si date < NOW).`;
 
     const userPrompt = `[EXTRAITS]\n${context}\n\n[QUESTION] ${rawPrompt}`;
 
