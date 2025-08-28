@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const { retrieveRelevant } = require('./rag/retriever');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
