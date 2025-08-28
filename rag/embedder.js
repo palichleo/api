@@ -1,15 +1,23 @@
 // rag/embedder.js
 const { pipeline, env } = require('@xenova/transformers');
 const os = require('os');
+const path = require('path');
 
-// ⚠️ on sacrifie la perf pour la qualité
-env.backends.onnx.wasm.numThreads = parseInt(process.env.EMBED_THREADS || os.cpus().length, 10);
+// ====== IMPORTANT: forcer le backend wasm (sans worker) ======
+env.backends.onnx.wasm.proxy = false; // évite l'erreur ERR_WORKER_PATH
+env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(8, os.cpus().length));
+// (optionnel) pointer explicitement vers les wasm locaux
+try {
+  env.backends.onnx.wasm.wasmPaths = path.dirname(require.resolve('onnxruntime-web/dist/ort-wasm.wasm'));
+} catch (_) { /* ignore si introuvable */ }
+
+// Modèles locaux/remote
 env.allowRemoteModels = true;
 env.localModelPath = '/opt/models';
 
-// ➜ bge-m3 (meilleur rappel que MiniLM), désactive le quant par défaut
+// Embedding "qualité" (lourd mais précis)
 const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/bge-m3';
-const EMBED_QUANT = process.env.EMBED_QUANTIZED === '1'; // mets 1 si tu veux re-quantizer (plus rapide, moins précis)
+const EMBED_QUANT = process.env.EMBED_QUANTIZED === '1'; // 0 = qualité, 1 = plus rapide
 
 let embedder;
 async function getEmbedder() {
