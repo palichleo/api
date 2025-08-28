@@ -1,23 +1,27 @@
 // rag/embedder.js
-const { pipeline, env } = require('@xenova/transformers');
-const os = require('os');
 const path = require('path');
+const os = require('os');
 
-// ====== IMPORTANT: forcer le backend wasm (sans worker) ======
-env.backends.onnx.wasm.proxy = false; // évite l'erreur ERR_WORKER_PATH
-env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(8, os.cpus().length));
-// (optionnel) pointer explicitement vers les wasm locaux
+/* 1) Forcer UN SEUL onnxruntime-web global et SANS worker */
+globalThis.ort = require('onnxruntime-web');
+const ort = globalThis.ort;
+ort.env.wasm.proxy = false; // pas de Worker -> évite ERR_WORKER_PATH
 try {
-  env.backends.onnx.wasm.wasmPaths = path.dirname(require.resolve('onnxruntime-web/dist/ort-wasm.wasm'));
-} catch (_) { /* ignore si introuvable */ }
+  // pointer vers les wasm packagés (évite la résolution "blob:nodedata")
+  ort.env.wasm.wasmPaths = path.dirname(require.resolve('onnxruntime-web/dist/ort-wasm.wasm'));
+} catch (_) {}
+ort.env.wasm.numThreads = Math.max(1, Math.min(8, os.cpus().length));
 
-// Modèles locaux/remote
+/* 2) Importer Transformers APRES la config ORT globale */
+const { pipeline, env } = require('@xenova/transformers');
 env.allowRemoteModels = true;
 env.localModelPath = '/opt/models';
+// ceinture et bretelles : pas de proxy côté config Transformers non plus
+try { env.backends.onnx.wasm.proxy = false; } catch (_) {}
 
-// Embedding "qualité" (lourd mais précis)
+/* 3) Embedding "qualité" (lourd). Mets EMBED_QUANTIZED=1 si ça rame trop */
 const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/bge-m3';
-const EMBED_QUANT = process.env.EMBED_QUANTIZED === '1'; // 0 = qualité, 1 = plus rapide
+const EMBED_QUANT = process.env.EMBED_QUANTIZED === '1';
 
 let embedder;
 async function getEmbedder() {
@@ -37,7 +41,6 @@ async function embed(text) {
 async function embedMany(texts) {
   const m = await getEmbedder();
   const out = await m(texts, { pooling: 'mean', normalize: true });
-
   if (Array.isArray(out)) return out.map(x => Array.from(x.data));
 
   const data = out.data;
