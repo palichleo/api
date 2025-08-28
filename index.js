@@ -4,7 +4,7 @@ const cors = require('cors');
 const { retrieveRelevant } = require('./rag/retriever');
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 const app = express();
@@ -36,7 +36,7 @@ async function streamGroq(res, systemPrompt, userPrompt) {
       model: GROQ_MODEL,
       stream: true,
       temperature: 0.1,
-      max_tokens: 256,
+      max_tokens: 500,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
