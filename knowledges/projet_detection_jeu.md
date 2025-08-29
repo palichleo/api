@@ -1,4 +1,4 @@
-# Projet : Détection d'entités avec Overlay en temps réel (début 2025)
+# Projet : Détection d'entités avec Overlay en temps réel [début 2025, terminé]
 
 ## Identité
 **Auteur :** Léo Palich  

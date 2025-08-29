@@ -1,4 +1,4 @@
-# Projet : Prédiction des fluctuations du marché des cryptomonnaies (début 2025)
+# Projet : Prédiction des fluctuations du marché des cryptomonnaies [début 2025, terminé]
 
 ## Identité
 **Auteur :** Léo Palich  

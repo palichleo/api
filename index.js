@@ -35,7 +35,8 @@ async function streamGroq(res, systemPrompt, userPrompt) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       stream: true,
-      temperature: 0.1,
+      temperature: 0.3,
+      top_p: 0.9,
       max_tokens: 500,
       messages: [
         { role: 'system', content: systemPrompt },

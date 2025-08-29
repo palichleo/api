@@ -72,10 +72,11 @@ Date : 2023 - 2024 (70h, terminé)
 
 # Projets
 
-- Amélioration du flux de données d'une entreprise (2024)
-- Création de modèle de reconnaissance de gestes afin de controler un robot par les mouvements (début 2025)
-- Tentative de création d'un système de prédiction des fluctuations des marchés boursiers (début 2025)
-- Programmation d'un système de chiffrement de mots de passes en Java, en utilisant la stéganographie (début 2025)
+- Création d'un système RAG pour un LLM qui connait mes projets [2025, actuellement]
+- Création de modèle de reconnaissance de gestes afin de controler un robot par les mouvements [début 2025, terminé]
+- Tentative de création d'un système de prédiction des fluctuations des marchés boursiers [début 2025, terminé]
+- Programmation d'un système de chiffrement de mots de passes en Java, en utilisant la stéganographie [début 2025, terminé]
+- Amélioration du flux de données d'une entreprise [2024, terminé]
 
 ---
 
