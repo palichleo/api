@@ -115,7 +115,7 @@ async function indexDir(dir = ROOT) {
       }
     }
   }
-  console.log(`✅ Indexation terminée : ${totalFiles} fichier(s), ${totalChunks} chunk(s), ${totalDocs} doc(s).`);
+  console.log(`Indexation terminée : ${totalFiles} fichier(s), ${totalChunks} chunk(s), ${totalDocs} doc(s).`);
 }
 
 if (require.main === module) {

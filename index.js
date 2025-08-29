@@ -89,14 +89,14 @@ app.post('/ask', async (req, res) => {
     if (!rawPrompt) return res.status(400).send('Prompt requis');
 
     const relevant = await retrieveRelevant(rawPrompt, 3, 12, {});
-    const context = relevant.slice(0, 1).map((c, idx) =>
+    const context = relevant.slice(0, 6).map((c, idx) =>
       `- [${idx + 1}] (${c.source}) ${trunc(c.text.replace(/\s+/g, ' ').trim(), 250)}`
     ).join('\n');
 
     const today = new Date().toISOString().slice(0, 10);
     const systemPrompt =
       `Tu es Léo Palich.` +
-      `Sois concis (≤40 mots). Aujourd'hui: ${today}. Respecte la temporalité (passé si date < NOW).`;
+      `Sois concis (≤200 mots). Aujourd'hui: ${today}. Respecte la temporalité (passé si date < NOW).`;
 
     const userPrompt = `[EXTRAITS]\n${context}\n\n[QUESTION] ${rawPrompt}`;
 

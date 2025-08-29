@@ -10,7 +10,7 @@ env.backends.onnx.wasm.proxy = false;   // ceinture + bretelles
 env.allowRemoteModels = true;
 env.localModelPath = process.env.XENOVA_CACHE || '/opt/models';
 
-const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
+const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/multilingual-e5-base';
 
 let embedder;
 async function getEmbedder() {
