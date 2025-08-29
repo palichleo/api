@@ -9,6 +9,35 @@ const TARGET_MAX = parseInt(process.env.CHUNK_MAX_TOKENS || '420', 10);
 const OVERLAP = parseInt(process.env.CHUNK_OVERLAP || '50', 10);
 const SENTENCE_EXPLODE = process.env.SENTENCE_EXPLODE === '1'; // indexer aussi les phrases
 
+function mdToPlain(s = '', { hpath = '', year = null } = {}) {
+  let txt = String(s);
+
+  // 1) supprimer code, images, liens (garder l’ancre)
+  txt = txt.replace(/```[\s\S]*?```/g, ' ');
+  txt = txt.replace(/`[^`]*`/g, ' ');
+  txt = txt.replace(/!\[[^\]]*]\([^)]*\)/g, ' ');
+  txt = txt.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+
+  // 2) listes de type "- **Programmation** : Python, Java" -> "Programmation : Python, Java"
+  txt = txt.replace(/^\s*[-*+]\s+\*\*([^*]+)\*\*\s*:\s*/gm, '$1 : ');
+  txt = txt.replace(/^\s*[-*+]\s+\*\*([^*]+)\*\*\s*/gm, '$1 : ');
+  txt = txt.replace(/^\s*[-*+]\s+/gm, ''); // bullets simples
+
+  // 3) titres -> texte (les chemins de titres sont déjà dans hpath)
+  txt = txt.replace(/^#{1,6}\s+/gm, '');
+
+  // 4) gras/italique -> texte
+  txt = txt.replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1');
+
+  // 5) guillemets droits + espaces
+  txt = txt.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+  txt = txt.replace(/\s+/g, ' ').trim();
+
+  const prefix = `${hpath ? `[${hpath}] ` : ''}${year ? `[${year}] ` : ''}`;
+  return (prefix + txt).trim();
+}
+
+
 function tokenizeCount(s) {
   return Math.max(1, Math.ceil(s.split(/\s+/).length * 0.9));
 }
@@ -94,9 +123,15 @@ async function indexDir(dir = ROOT) {
     for (const [idx, { text, hpath, year }] of chunks.entries()) {
       const docs = [];
 
-      // 1) chunk principal avec hpath/date en tête
-      const decorated = `${hpath ? `[${hpath}] ` : ''}${year ? `[${year}] ` : ''}${text}`;
-      docs.push({ text: decorated, source: `${file}#${idx}` });
+      const plain = mdToPlain(text, { hpath, year });
+      docs.push({ text: plain, source: `${file}#${idx}` });
+
+      if (SENTENCE_EXPLODE) {
+        const sents = splitIntoSentences(plain);   // <= phrases déjà nettoyées
+        sents.forEach((s, j) => {
+          docs.push({ text: s, source: `${file}#${idx}:s${j}` });
+        });
+      }
 
       // 2) optionnel : phrases (rappel ↑)
       if (SENTENCE_EXPLODE) {
