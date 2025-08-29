@@ -10,6 +10,18 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+function sanitizeOut(s = '') {
+  return s
+    // vire les styles Markdown
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/__+/g, '')     // italiques/gras avec underscores
+    .replace(/`+/g, '')      // code inline
+    // guillemets droits + espaces propres
+    .replace(/[“”]/g, '"').replace(/[‘’]/g, "'")
+    .replace(/\s{2,}/g, ' ');
+}
+
 function trunc(s, max = 800) {
   if (!s || s.length <= max) return s || '';
   return s.slice(0, max) + '…';
@@ -76,7 +88,7 @@ async function streamGroq(res, systemPrompt, userPrompt) {
       try {
         const evt = JSON.parse(data);
         const tok = evt.choices?.[0]?.delta?.content;
-        if (tok) res.write(tok);
+        if (tok) res.write(sanitizeOut(tok));
       } catch (_) {}
     }
   }
@@ -99,7 +111,7 @@ app.post('/ask', async (req, res) => {
       `Tu es Léo Palich.` +
       `Sois concis (≤200 mots). Aujourd'hui: ${today}. Respecte la temporalité (passé si date < NOW).`;
 
-    const userPrompt = `[EXTRAITS]\n${context}\n\n[QUESTION] ${rawPrompt}`;
+    const userPrompt = `[EXTRAITS (# = tres grand titre, ** = grand titre, * = petit titre)]\n${context}\n\n[QUESTION] ${rawPrompt}`;
 
     await streamGroq(res, systemPrompt, userPrompt);
   } catch (err) {
