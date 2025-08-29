@@ -1,14 +1,15 @@
 // rag/embedder.js
+const ort = require('onnxruntime-web'); // ← IMPORTANT: avant transformers
+ort.env.wasm.proxy = false;
+
 const { pipeline, env } = require('@xenova/transformers');
 const os = require('os');
 
-// ⚡ optimisations CPU sûres
 env.backends.onnx.wasm.numThreads = Math.max(1, Math.min(4, os.cpus().length));
-env.backends.onnx.wasm.proxy = false;           // ← AJOUT pour éviter ERR_WORKER_PATH
-env.allowRemoteModels = true;                   // repasse à false si tu poses les modèles dans /opt/models
-env.localModelPath = '/opt/models';
+env.backends.onnx.wasm.proxy = false;   // ceinture + bretelles
+env.allowRemoteModels = true;
+env.localModelPath = process.env.XENOVA_CACHE || '/opt/models';
 
-// ✅ modèle rapide multilingue
 const MODEL_ID = process.env.EMBED_MODEL || 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
 
 let embedder;
@@ -26,11 +27,9 @@ async function embed(text) {
   return Array.from(out.data);
 }
 
-// ✅ batching robuste (gère Tensor batched ou array de Tensors)
 async function embedMany(texts) {
   const m = await getEmbedder();
   const out = await m(texts, { pooling: 'mean', normalize: true });
-
   if (Array.isArray(out)) return out.map(x => Array.from(x.data));
 
   const data = out.data;

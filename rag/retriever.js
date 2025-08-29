@@ -21,11 +21,36 @@ async function initCollection() {
   return collection;
 }
 
-// --- utils cosines / mmr (JS pur)
+// ---------------- utils
 function dot(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; }
 function norm(a) { return Math.sqrt(dot(a, a)); }
 function cosine(a, b) { return dot(a, b) / (norm(a) * norm(b) + 1e-10); }
 
+// Stopwords FR (petit set suffisant pour nos requêtes)
+const STOP = new Set('je tu il elle nous vous ils elles de du des le la les un une et ou en au aux sur pour par avec sans sous chez dans que qui quoi dont où est sont été étais était êtres avoir ai as a avons avez ont plus moins très ne pas ni mais donc or car'.split(' '));
+function normalize(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function tokens(str) {
+  return normalize(str).split(' ').filter(t => t && !STOP.has(t));
+}
+function jaccard(a, b) {
+  const A = new Set(a), B = new Set(b);
+  let inter = 0; for (const x of A) if (B.has(x)) inter++;
+  const uni = A.size + B.size - inter;
+  return uni ? inter / uni : 0;
+}
+function extractYear(text) {
+  const m = (text || '').match(/\b(19|20)\d{2}\b/);
+  return m ? parseInt(m[0], 10) : null;
+}
+
+// ---------------- MMR (diversité)
 function mmr(queryEmb, candEmbs, lambda = 0.65, topK = 6) {
   const n = candEmbs.length;
   const selected = [];
@@ -46,7 +71,38 @@ function mmr(queryEmb, candEmbs, lambda = 0.65, topK = 6) {
   return selected;
 }
 
-// --- add / bulk add (tu fournis les embeddings, Chroma n'en calcule pas)
+// ---------------- Query expansion LOCAL (sans LLM)
+function expandQueriesLocal(query, n = 3) {
+  const q = normalize(query);
+  const qs = new Set([q]);
+
+  // 1) version "keywords" (sans stopwords)
+  const toks = tokens(query);
+  if (toks.length) qs.add(toks.join(' '));
+
+  // 2) synonymes simples FR ciblés pour ton domaine
+  const syn = [
+    ['parcours','experience','cv','formation'],
+    ['projet','realisations','travaux','portfolio'],
+    ['intelligence artificielle','ia','machine learning','ml'],
+    ['traitement de donnees','analyse de donnees','data','statistiques'],
+    ['freelance','independant','consultant']
+  ];
+  syn.forEach(group => {
+    for (const w of group) {
+      if (q.includes(w)) group.forEach(v => qs.add(q.replace(w, v)));
+    }
+  });
+
+  // 3) variantes d’ordre (bigrams)
+  for (let i = 0; i + 1 < toks.length; i++) {
+    qs.add(`${toks[i+1]} ${toks[i]}`);
+  }
+
+  return Array.from(qs).slice(0, Math.max(2, n + 1)); // original + n variantes
+}
+
+// ---------------- add / bulk add (embeddings fournis par nous)
 async function addDocument(text, source = 'unknown') {
   const col = await initCollection();
   const e = await embed(text);
@@ -72,92 +128,29 @@ async function addDocuments(items) {
   });
 }
 
-// --- Multi-Query via Groq pour augmenter le rappel
-async function expandQueriesLLM(query, n = 3) {
-  const key = process.env.GROQ_API_KEY;
-  const model = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
-  if (!key) return [query];
-  const url = 'https://api.groq.com/openai/v1/chat/completions';
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${key}`
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      max_tokens: 180,
-      stream: false,
-      messages: [
-        { role: 'system', content: 'Réécris la question en variations courtes et différentes. Donne N lignes, une paraphrase par ligne, sans numérotation.' },
-        { role: 'user', content: `N=${n}\nQuestion: ${query}` }
-      ]
-    })
-  });
-  if (!r.ok) return [query];
-  const data = await r.json();
-  const txt = data.choices?.[0]?.message?.content || '';
-  const lines = txt.split('\n').map(s => s.trim()).filter(Boolean);
-  return Array.from(new Set([query, ...lines])).slice(0, n + 1);
-}
-
-// --- Rerank LLM (optionnel) via Groq (qualité↑, perf↓)
-async function rerankLLM(query, docs, top = 12) {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) return docs.map((d, i) => ({ i, score: 0.0, ...d }));
-  const model = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
-  const url = 'https://api.groq.com/openai/v1/chat/completions';
-
-  // On prépare un prompt structuré (indices + docs tronqués)
-  const body = docs.map((d, i) => `[#${i}] ${d.text.slice(0, 800)}`).join('\n');
-  const prompt =
-    `Classe uniquement les passages du plus pertinent au moins pertinent pour la question.\n` +
-    `Donne une liste d'indices (ex: 4,0,2,...). Question: ${query}\n` +
-    `Passages:\n${body}`;
-
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${key}` },
-    body: JSON.stringify({
-      model, temperature: 0.0, stream: false, max_tokens: 128,
-      messages: [{ role:'user', content: prompt }]
-    })
-  });
-  if (!r.ok) return docs.map((d, i) => ({ i, score: 0.0, ...d }));
-  const data = await r.json();
-  const txt = data.choices?.[0]?.message?.content || '';
-  const idxs = (txt.match(/\d+/g) || []).map(Number).filter(i => i >= 0 && i < docs.length);
-  const seen = new Set();
-  const order = idxs.filter(i => !seen.has(i) && seen.add(i));
-  // complétion avec les manquants
-  for (let i = 0; i < docs.length; i++) if (!seen.has(i)) order.push(i);
-
-  return order.slice(0, top).map(i => ({ i, score: (docs.length - i) / docs.length, ...docs[i] }));
-}
-
 /**
- * retrieveRelevant(query, kFinal=6, kInitial=64)
- * - Multi-Query -> union candidats
- * - Rerank LLM -> tri (optionnel mais conseillé)
+ * retrieveRelevant(query, kFinal=6, kInitial=96)
+ * - Multi-Query LOCAL -> union candidats
+ * - Rerank local (cosine + overlap + recence)
  * - MMR -> diversité
  */
-async function retrieveRelevant(query, kFinal = 6, kInitial = 64, dbg = {}) {
+async function retrieveRelevant(query, kFinal = 6, kInitial = 96, dbg = {}) {
   const col = await initCollection();
 
-  // 1) expansions de requêtes
-  const queries = await expandQueriesLLM(query, 3);
+  // 1) expansions locales
+  const queries = expandQueriesLocal(query, 4);
+  const qMainTokens = tokens(query);
 
   // 2) embed des requêtes
   const qEmbs = await embedMany(queries);
 
-  // 3) récup gros pool par requête
+  // 3) récup pool large par requête
   const candidates = new Map();
   for (const qEmb of qEmbs) {
     const res = await col.query({
       queryEmbeddings: [qEmb],
       nResults: kInitial,
-      include: ['ids', 'documents', 'metadatas', 'distances', 'embeddings'],
+      include: ['ids', 'documents', 'metadatas', 'embeddings'],
     });
     const ids = res.ids?.[0] || [];
     const docs = res.documents?.[0] || [];
@@ -178,24 +171,31 @@ async function retrieveRelevant(query, kFinal = 6, kInitial = 64, dbg = {}) {
   const pool = Array.from(candidates.values());
   if (pool.length === 0) return [];
 
-  // 4) (optionnel) Rerank LLM
-  let ranked = await rerankLLM(query, pool, Math.max(kFinal * 4, 24)); // on garde un top large
-  if (!ranked || ranked.length === 0) ranked = pool.map((d, i) => ({ i, score: 0.0, ...d }));
-
-  // 5) MMR sur le top large pour diversité
-  const topForMMR = ranked.slice(0, Math.max(kFinal * 4, 24));
+  // 4) Rerank LOCAL (cosine + jaccard + recency)
+  const yearNow = new Date().getFullYear();
   const qEmbMain = qEmbs[0];
+  const ranked = pool.map((d) => {
+    const cos = cosine(qEmbMain, d.emb);
+    const over = jaccard(qMainTokens, tokens(d.text));
+    const y = extractYear(d.text);
+    const rec = y ? Math.max(0, 1 - Math.min(10, Math.abs(yearNow - y)) / 10) : 0.5; // proche de maintenant → score↑
+    const score = 0.7 * cos + 0.2 * over + 0.1 * rec;
+    return { ...d, score };
+  }).sort((a, b) => b.score - a.score);
+
+  // 5) MMR pour diversité sur un top large
+  const topForMMR = ranked.slice(0, Math.max(kFinal * 4, 24));
   const embs = topForMMR.map(x => x.emb);
   const idxs = mmr(qEmbMain, embs, 0.65, Math.min(kFinal * 2, topForMMR.length));
   const diverse = idxs.map(i => topForMMR[i]);
 
-  // 6) tri final (on respecte le rang LLM d'abord)
-  const final = diverse.slice(0, kFinal);
+  // 6) tri final par score puis coupe
+  const final = diverse.sort((a, b) => b.score - a.score).slice(0, kFinal);
 
   return final.map((x, i) => ({
     i,
     source: x.source,
-    score: +((x.score ?? 0)).toFixed(4),
+    score: +x.score.toFixed(4),
     text: x.text
   }));
 }
