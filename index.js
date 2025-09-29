@@ -108,12 +108,11 @@ app.post('/ask', async (req, res) => {
 
     const today = new Date().toISOString().slice(0, 10);
     const systemPrompt =
-      `Tu es un assistant RAG francophone ultra-strict.\n` +
+      `Tu es un assistant RAG francophone.\n` +
       `RÈGLES:\n` +
       `- Tu réponds UNIQUEMENT à partir des EXTRACTS fournis.\n`+
       `- Si les EXTRACTS sont insuffisants, réponds exactement: "Hors corpus: information manquante".\n`+
       `- Ne fais AUCUNE supposition. Pas d'invention de dates, chiffres, références.\n`+
-      `- Cite les passages utilisés avec [n] où n correspond à la liste dans EXTRACTS.\n`+
       `- Réponds en français, clair et factuel (≤180 mots). Aujourd'hui: ${today}.`;
 
   const userPrompt =
@@ -121,9 +120,8 @@ app.post('/ask', async (req, res) => {
     `QUESTION:\n${rawPrompt}\n\n` +
     `INSTRUCTIONS:\n` +
     `1) Ne répondre que si l'information apparaît explicitement dans au moins un EXTRACT.\n` +
-    `2) Dans la réponse, insérer les citations [n] au bon endroit.\n` +
-    `3) Si manque: "Hors corpus: information manquante".`;
-    
+    `2) Si manque: "Hors corpus: information manquante".`;
+
     await streamGroq(res, systemPrompt, userPrompt);
   } catch (err) {
     console.error('ERREUR:', err);
