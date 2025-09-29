@@ -174,12 +174,13 @@ async function retrieveRelevant(query, kFinal = 6, kInitial = 96, dbg = {}) {
   // 4) Rerank LOCAL (cosine + jaccard + recency)
   const yearNow = new Date().getFullYear();
   const qEmbMain = qEmbs[0];
+
   const ranked = pool.map((d) => {
     const cos = cosine(qEmbMain, d.emb);
     const over = jaccard(qMainTokens, tokens(d.text));
     const y = extractYear(d.text);
-    const rec = y ? Math.max(0, 1 - Math.min(10, Math.abs(yearNow - y)) / 10) : 0.5; // proche de maintenant → score↑
-    const score = 0.7 * cos + 0.2 * over + 0.1 * rec;
+    const rec = y ? Math.max(0, 1 - Math.min(10, Math.abs(yearNow - y)) / 10) : 0.0; // proche de maintenant → score↑
+    const score = 0.82 * cos + 0.12 * over + 0.6 * rec;
     return { ...d, score };
   }).sort((a, b) => b.score - a.score);
 
