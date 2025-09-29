@@ -47,9 +47,9 @@ async function streamGroq(res, systemPrompt, userPrompt) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       stream: true,
-      temperature: 0.3,
-      top_p: 0.9,
-      max_tokens: 500,
+      temperature: 0.0,
+      top_p: 1,
+      max_tokens: 900,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -101,18 +101,29 @@ app.post('/ask', async (req, res) => {
     const rawPrompt = (req.body?.prompt || '').toString().trim();
     if (!rawPrompt) return res.status(400).send('Prompt requis');
 
-    const relevant = await retrieveRelevant(rawPrompt, 3, 12, {});
-    const context = relevant.slice(0, 6).map((c, idx) =>
-      `- [${idx + 1}] (${c.source}) ${trunc(c.text.replace(/\s+/g, ' ').trim(), 250)}`
+    const relevant = await retrieveRelevant(rawPrompt, 10, 63, {});
+    const context = relevant.slice(0, 10).map((c, idx) =>
+      `- [${idx + 1}] (${c.source}) ${trunc(c.text.replace(/\s+/g, ' ').trim(), 1600)}`
     ).join('\n');
 
     const today = new Date().toISOString().slice(0, 10);
     const systemPrompt =
-      `Tu es Léo Palich.` +
-      `Sois concis (≤200 mots). Aujourd'hui: ${today}. Respecte la temporalité (passé si date < NOW).`;
+      `Tu es un assistant RAG francophone ultra-strict.\n` +
+      `RÈGLES:\n` +
+      `- Tu réponds UNIQUEMENT à partir des EXTRACTS fournis.\n`+
+      `- Si les EXTRACTS sont insuffisants, réponds exactement: "Hors corpus: information manquante".\n`+
+      `- Ne fais AUCUNE supposition. Pas d'invention de dates, chiffres, références.\n`+
+      `- Cite les passages utilisés avec [n] où n correspond à la liste dans EXTRACTS.\n`+
+      `- Réponds en français, clair et factuel (≤180 mots). Aujourd'hui: ${today}.`;
 
-    const userPrompt = `[EXTRAITS (# = tres grand titre, ** = grand titre, * = petit titre)]\n${context}\n\n[QUESTION] ${rawPrompt}`;
-
+  const userPrompt =
+    `EXTRACTS (numérotés):\n${context}\n\n` +
+    `QUESTION:\n${rawPrompt}\n\n` +
+    `INSTRUCTIONS:\n` +
+    `1) Ne répondre que si l'information apparaît explicitement dans au moins un EXTRACT.\n` +
+    `2) Dans la réponse, insérer les citations [n] au bon endroit.\n` +
+    `3) Si manque: "Hors corpus: information manquante".`;
+    
     await streamGroq(res, systemPrompt, userPrompt);
   } catch (err) {
     console.error('ERREUR:', err);
